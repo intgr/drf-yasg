@@ -1,7 +1,9 @@
 from django.conf import settings
 from rest_framework.settings import perform_import
 
-SWAGGER_DEFAULTS = {
+from typing import Any, Optional, Dict, List
+redoc_settings: Any
+SWAGGER_DEFAULTS: Dict[str, Any] = {
     'DEFAULT_GENERATOR_CLASS': 'drf_yasg.generators.OpenAPISchemaGenerator',
     'DEFAULT_AUTO_SCHEMA_CLASS': 'drf_yasg.inspectors.SwaggerAutoSchema',
 
@@ -71,7 +73,7 @@ SWAGGER_DEFAULTS = {
     'DISPLAY_OPERATION_ID': True,
 }
 
-REDOC_DEFAULTS = {
+REDOC_DEFAULTS: Dict[str, Any] = {
     'SPEC_URL': None,
     'LAZY_RENDERING': False,
     'HIDE_HOSTNAME': False,
@@ -82,7 +84,7 @@ REDOC_DEFAULTS = {
     'FETCH_SCHEMA_WITH_QUERY': True,
 }
 
-IMPORT_STRINGS = [
+IMPORT_STRINGS: List[str] = [
     'DEFAULT_GENERATOR_CLASS',
     'DEFAULT_AUTO_SCHEMA_CLASS',
     'DEFAULT_FIELD_INSPECTORS',
@@ -96,8 +98,9 @@ class AppSettings(object):
     """
     Stolen from Django Rest Framework, removed caching for easier testing
     """
-
-    def __init__(self, user_settings, defaults, import_strings=None):
+    defaults: Any
+    import_strings: Any
+    def __init__(self, user_settings: Any, defaults: Any, import_strings: Optional[Any] = None):
         self._user_settings = user_settings
         self.defaults = defaults
         self.import_strings = import_strings or []
@@ -106,7 +109,7 @@ class AppSettings(object):
     def user_settings(self):
         return getattr(settings, self._user_settings, {})
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: Any):
         if attr not in self.defaults:
             raise AttributeError("Invalid setting: '%s'" % attr)  # pragma: no cover
 
@@ -125,7 +128,7 @@ class AppSettings(object):
 
 
 #:
-swagger_settings = AppSettings(
+swagger_settings: Any = AppSettings(
     user_settings='SWAGGER_SETTINGS',
     defaults=SWAGGER_DEFAULTS,
     import_strings=IMPORT_STRINGS,

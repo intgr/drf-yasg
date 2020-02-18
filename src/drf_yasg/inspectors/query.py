@@ -8,25 +8,27 @@ from ..utils import force_real_str
 from .base import FilterInspector, PaginatorInspector
 
 
+from typing import Any
+from .base import FilterInspector, PaginatorInspector
 class CoreAPICompatInspector(PaginatorInspector, FilterInspector):
     """Converts ``coreapi.Field``\\ s to :class:`.openapi.Parameter`\\ s for filters and paginators that implement a
     ``get_schema_fields`` method.
     """
 
-    def get_paginator_parameters(self, paginator):
+    def get_paginator_parameters(self, paginator: Any):
         fields = []
         if hasattr(paginator, 'get_schema_fields'):
             fields = paginator.get_schema_fields(self.view)
 
         return [self.coreapi_field_to_parameter(field) for field in fields]
 
-    def get_filter_parameters(self, filter_backend):
+    def get_filter_parameters(self, filter_backend: Any):
         fields = []
         if hasattr(filter_backend, 'get_schema_fields'):
             fields = filter_backend.get_schema_fields(self.view)
         return [self.coreapi_field_to_parameter(field) for field in fields]
 
-    def coreapi_field_to_parameter(self, field):
+    def coreapi_field_to_parameter(self, field: Any):
         """Convert an instance of `coreapi.Field` to a swagger :class:`.Parameter` object.
 
         :param coreapi.Field field:
@@ -62,7 +64,7 @@ class DjangoRestResponsePagination(PaginatorInspector):
     PageNumberPagination and CursorPagination
     """
 
-    def get_paginated_response(self, paginator, response_schema):
+    def get_paginated_response(self, paginator: Any, response_schema: Any):
         assert response_schema.type == openapi.TYPE_ARRAY, "array return expected for paged response"
         paged_schema = None
         if isinstance(paginator, (LimitOffsetPagination, PageNumberPagination, CursorPagination)):

@@ -14,10 +14,11 @@ from ...app_settings import swagger_settings
 from ...codecs import OpenAPICodecJson, OpenAPICodecYaml
 
 
+from typing import Any, Optional
 class Command(BaseCommand):
-    help = 'Write the Swagger schema to disk in JSON or YAML format.'
+    help: str = 'Write the Swagger schema to disk in JSON or YAML format.'
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: Any) -> None:
         parser.add_argument(
             'output_file', metavar='output-file',
             nargs='?',
@@ -73,7 +74,7 @@ class Command(BaseCommand):
             help='Import string pointing to an OpenAPISchemaGenerator subclass to use for schema generation.'
         )
 
-    def write_schema(self, schema, stream, format):
+    def write_schema(self, schema: Any, stream: Any, format: Any) -> None:
         if format == 'json':
             codec = OpenAPICodecJson(validators=[], pretty=True)
             swagger_json = codec.encode(schema).decode('utf-8')
@@ -86,7 +87,7 @@ class Command(BaseCommand):
         else:  # pragma: no cover
             raise ValueError("unknown format %s" % format)
 
-    def get_mock_request(self, url, format, user=None):
+    def get_mock_request(self, url: Any, format: Any, user: Optional[Any] = None):
         factory = APIRequestFactory()
 
         request = factory.get(url + '/swagger.' + format)
@@ -95,7 +96,7 @@ class Command(BaseCommand):
         request = APIView().initialize_request(request)
         return request
 
-    def get_schema_generator(self, generator_class_name, api_info, api_version, api_url):
+    def get_schema_generator(self, generator_class_name: Any, api_info: Any, api_version: Any, api_url: Any):
         generator_class = swagger_settings.DEFAULT_GENERATOR_CLASS
         if generator_class_name:
             generator_class = import_string(generator_class_name)
@@ -106,11 +107,11 @@ class Command(BaseCommand):
             url=api_url,
         )
 
-    def get_schema(self, generator, request, public):
+    def get_schema(self, generator: Any, request: Any, public: Any):
         return generator.get_schema(request=request, public=public)
 
-    def handle(self, output_file, overwrite, format, api_url, mock, api_version, user, private, generator_class_name,
-               *args, **kwargs):
+    def handle(self, output_file: Any, overwrite: Any, format: Any, api_url: Any, mock: Any, api_version: Any, user: Any, private: Any, generator_class_name: Any,
+               *args: Any, **kwargs: Any) -> None:
         # disable logs of WARNING and below
         logging.disable(logging.WARNING)
 

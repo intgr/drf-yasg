@@ -7,12 +7,13 @@ from .. import openapi
 from ..utils import force_real_str, get_field_default, get_object_classes, is_list_view
 
 #: Sentinel value that inspectors must return to signal that they do not know how to handle an object
-NotHandled = object()
+from typing import Any, Optional
+NotHandled: Any = object()
 
 logger = logging.getLogger(__name__)
 
 
-def is_callable_method(cls_or_instance, method_name):
+def is_callable_method(cls_or_instance: Any, method_name: Any):
     method = getattr(cls_or_instance, method_name)
     if inspect.ismethod(method) and getattr(method, '__self__', None):
         # bound classmethod or instance method
@@ -30,7 +31,7 @@ def is_callable_method(cls_or_instance, method_name):
         return method, not inspect.ismethod(method)
 
 
-def call_view_method(view, method_name, fallback_attr=None, default=None):
+def call_view_method(view: Any, method_name: Any, fallback_attr: Optional[Any] = None, default: Optional[Any] = None):
     """Call a view method which might throw an exception. If an exception is thrown, log an informative error message
     and return the value of fallback_attr, or default if not present. The method must be callable without any arguments
     except cls or self.
@@ -60,7 +61,12 @@ def call_view_method(view, method_name, fallback_attr=None, default=None):
 
 
 class BaseInspector(object):
-    def __init__(self, view, path, method, components, request):
+    view: Any
+    path: Any
+    method: Any
+    components: Any
+    request: Any
+    def __init__(self, view: Any, path: Any, method: Any, components: Any, request: Any):
         """
         :param rest_framework.views.APIView view: the view associated with this endpoint
         :param str path: the path component of the operation URL
@@ -74,7 +80,7 @@ class BaseInspector(object):
         self.components = components
         self.request = request
 
-    def process_result(self, result, method_name, obj, **kwargs):
+    def process_result(self, result: Any, method_name: Any, obj: Any, **kwargs: Any):
         """After an inspector handles an object (i.e. returns a value other than :data:`.NotHandled`), all inspectors
         that were probed get the chance to alter the result, in reverse order. The inspector that handled the object
         is the first to receive a ``process_result`` call with the object it just returned.
@@ -91,7 +97,7 @@ class BaseInspector(object):
         """
         return result
 
-    def probe_inspectors(self, inspectors, method_name, obj, initkwargs=None, **kwargs):
+    def probe_inspectors(self, inspectors: Any, method_name: Any, obj: Any, initkwargs: Optional[Any] = None, **kwargs: Any):
         """Probe a list of inspectors with a given object. The first inspector in the list to return a value that
         is not :data:`.NotHandled` wins.
 
@@ -151,7 +157,7 @@ class PaginatorInspector(BaseInspector):
     Responisble for determining extra query parameters and response structure added by given paginators.
     """
 
-    def get_paginator_parameters(self, paginator):
+    def get_paginator_parameters(self, paginator: Any):
         """Get the pagination parameters for a single paginator **instance**.
 
         Should return :data:`.NotHandled` if this inspector does not know how to handle the given `paginator`.
@@ -161,7 +167,7 @@ class PaginatorInspector(BaseInspector):
         """
         return NotHandled
 
-    def get_paginated_response(self, paginator, response_schema):
+    def get_paginated_response(self, paginator: Any, response_schema: Any):
         """Add appropriate paging fields to a response :class:`.Schema`.
 
         Should return :data:`.NotHandled` if this inspector does not know how to handle the given `paginator`.
@@ -179,7 +185,7 @@ class FilterInspector(BaseInspector):
     Responsible for determining extra query parameters added by given filter backends.
     """
 
-    def get_filter_parameters(self, filter_backend):
+    def get_filter_parameters(self, filter_backend: Any):
         """Get the filter parameters for a single filter backend **instance**.
 
         Should return :data:`.NotHandled` if this inspector does not know how to handle the given `filter_backend`.
@@ -192,12 +198,12 @@ class FilterInspector(BaseInspector):
 
 class FieldInspector(BaseInspector):
     """Base inspector for serializers and serializer fields. """
-
-    def __init__(self, view, path, method, components, request, field_inspectors):
+    field_inspectors: Any
+    def __init__(self, view: Any, path: Any, method: Any, components: Any, request: Any, field_inspectors: Any):
         super(FieldInspector, self).__init__(view, path, method, components, request)
         self.field_inspectors = field_inspectors
 
-    def add_manual_fields(self, serializer_or_field, schema):
+    def add_manual_fields(self, serializer_or_field: Any, schema: Any) -> None:
         """Set fields from the ``swagger_schem_fields`` attribute on the Meta class. This method is called
         only for serializers or fields that are converted into ``openapi.Schema`` objects.
 
@@ -210,7 +216,7 @@ class FieldInspector(BaseInspector):
             for attr, val in swagger_schema_fields.items():
                 setattr(schema, attr, val)
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any):
         """Convert a drf Serializer or Field instance into a Swagger object.
 
         Should return :data:`.NotHandled` if this inspector does not know how to handle the given `field`.
@@ -226,7 +232,7 @@ class FieldInspector(BaseInspector):
         """
         return NotHandled
 
-    def probe_field_inspectors(self, field, swagger_object_type, use_references, **kwargs):
+    def probe_field_inspectors(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any):
         """Helper method for recursively probing `field_inspectors` to handle a given field.
 
         All arguments are the same as :meth:`.field_to_swagger_object`.
@@ -314,7 +320,7 @@ class FieldInspector(BaseInspector):
 
 
 class SerializerInspector(FieldInspector):
-    def get_schema(self, serializer):
+    def get_schema(self, serializer: Any):
         """Convert a DRF Serializer instance to an :class:`.openapi.Schema`.
 
         Should return :data:`.NotHandled` if this inspector does not know how to handle the given `serializer`.
@@ -324,7 +330,7 @@ class SerializerInspector(FieldInspector):
         """
         return NotHandled
 
-    def get_request_parameters(self, serializer, in_):
+    def get_request_parameters(self, serializer: Any, in_: Any):
         """Convert a DRF serializer into a list of :class:`.Parameter`\\ s.
 
         Should return :data:`.NotHandled` if this inspector does not know how to handle the given `serializer`.
@@ -337,7 +343,11 @@ class SerializerInspector(FieldInspector):
 
 
 class ViewInspector(BaseInspector):
-    body_methods = ('PUT', 'PATCH', 'POST', 'DELETE')  #: methods that are allowed to have a request body
+    implicit_body_methods: Any
+    implicit_list_response_methods: Any
+    field_inspectors: Any
+    overrides: Any
+    body_methods: Any = ('PUT', 'PATCH', 'POST', 'DELETE')  #: methods that are allowed to have a request body
 
     #: methods that are assumed to require a request body determined by the view's ``serializer_class``
     implicit_body_methods = ('PUT', 'PATCH', 'POST')
@@ -347,10 +357,10 @@ class ViewInspector(BaseInspector):
 
     # real values set in __init__ to prevent import errors
     field_inspectors = []  #:
-    filter_inspectors = []  #:
-    paginator_inspectors = []  #:
+    filter_inspectors: Any = []  #:
+    paginator_inspectors: Any = []  #:
 
-    def __init__(self, view, path, method, components, request, overrides):
+    def __init__(self, view: Any, path: Any, method: Any, components: Any, request: Any, overrides: Any):
         """
         Inspector class responsible for providing :class:`.Operation` definitions given a view, path and method.
 
@@ -368,7 +378,7 @@ class ViewInspector(BaseInspector):
             default_inspectors = [insp for insp in getattr(self, inspectors) if insp not in extra_inspectors]
             setattr(self, inspectors, extra_inspectors + default_inspectors)
 
-    def get_operation(self, operation_keys):
+    def get_operation(self, operation_keys: Any) -> None:
         """Get an :class:`.Operation` for the given API endpoint (path, method).
         This includes query, body parameters and response schemas.
 
@@ -435,7 +445,7 @@ class ViewInspector(BaseInspector):
         return self.probe_inspectors(self.paginator_inspectors, 'get_paginator_parameters',
                                      getattr(self.view, 'paginator')) or []
 
-    def serializer_to_schema(self, serializer):
+    def serializer_to_schema(self, serializer: Any):
         """Convert a serializer to an OpenAPI :class:`.Schema`.
 
         :param serializers.BaseSerializer serializer: the ``Serializer`` instance
@@ -446,7 +456,7 @@ class ViewInspector(BaseInspector):
             self.field_inspectors, 'get_schema', serializer, {'field_inspectors': self.field_inspectors}
         )
 
-    def serializer_to_parameters(self, serializer, in_):
+    def serializer_to_parameters(self, serializer: Any, in_: Any):
         """Convert a serializer to a possibly empty list of :class:`.Parameter`\\ s.
 
         :param serializers.BaseSerializer serializer: the ``Serializer`` instance
@@ -458,7 +468,7 @@ class ViewInspector(BaseInspector):
             in_=in_
         ) or []
 
-    def get_paginated_response(self, response_schema):
+    def get_paginated_response(self, response_schema: Any):
         """Add appropriate paging fields to a response :class:`.Schema`.
 
         :param openapi.Schema response_schema: the response schema that must be paged.

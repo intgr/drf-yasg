@@ -4,14 +4,16 @@ from .codecs import _OpenAPICodec
 from .errors import SwaggerValidationError
 
 
+from typing import Any
 class SwaggerExceptionMiddleware(object):
-    def __init__(self, get_response):
+    get_response: Any
+    def __init__(self, get_response: Any):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: Any):
         return self.get_response(request)
 
-    def process_exception(self, request, exception):
+    def process_exception(self, request: Any, exception: Any):
         if isinstance(exception, SwaggerValidationError):
             err = {'errors': exception.errors, 'message': str(exception)}
             codec = exception.source_codec

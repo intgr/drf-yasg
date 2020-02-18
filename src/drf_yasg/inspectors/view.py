@@ -13,17 +13,20 @@ from ..utils import (
 )
 from .base import ViewInspector, call_view_method
 
+from typing import Any, Optional
+from .base import ViewInspector
 logger = logging.getLogger(__name__)
 
 
 class SwaggerAutoSchema(ViewInspector):
-    def __init__(self, view, path, method, components, request, overrides, operation_keys=None):
+    operation_keys: Any
+    def __init__(self, view: Any, path: Any, method: Any, components: Any, request: Any, overrides: Any, operation_keys: Optional[Any] = None):
         super(SwaggerAutoSchema, self).__init__(view, path, method, components, request, overrides)
         self._sch = AutoSchema()
         self._sch.view = view
         self.operation_keys = operation_keys
 
-    def get_operation(self, operation_keys=None):
+    def get_operation(self, operation_keys: Optional[Any] = None):
         operation_keys = operation_keys or self.operation_keys
 
         consumes = self.get_consumes()
@@ -57,7 +60,7 @@ class SwaggerAutoSchema(ViewInspector):
             deprecated=deprecated
         )
 
-    def get_request_body_parameters(self, consumes):
+    def get_request_body_parameters(self, consumes: Any):
         """Return the request body parameters for this view. |br|
         This is either:
 
@@ -125,7 +128,7 @@ class SwaggerAutoSchema(ViewInspector):
 
         return body_override
 
-    def get_request_form_parameters(self, serializer):
+    def get_request_form_parameters(self, serializer: Any):
         """Given a Serializer, return a list of ``in: formData`` :class:`.Parameter`\\ s.
 
         :param serializer: the view's request serializer as returned by :meth:`.get_request_serializer`
@@ -133,7 +136,7 @@ class SwaggerAutoSchema(ViewInspector):
         """
         return self.serializer_to_parameters(serializer, in_=openapi.IN_FORM)
 
-    def get_request_body_schema(self, serializer):
+    def get_request_body_schema(self, serializer: Any):
         """Return the :class:`.Schema` for a given request's body data. Only applies to PUT, PATCH and POST requests.
 
         :param serializer: the view's request serializer as returned by :meth:`.get_request_serializer`
@@ -141,7 +144,7 @@ class SwaggerAutoSchema(ViewInspector):
         """
         return self.serializer_to_schema(serializer)
 
-    def make_body_parameter(self, schema):
+    def make_body_parameter(self, schema: Any):
         """Given a :class:`.Schema` object, create an ``in: body`` :class:`.Parameter`.
 
         :param openapi.Schema schema: the request body schema
@@ -149,7 +152,7 @@ class SwaggerAutoSchema(ViewInspector):
         """
         return openapi.Parameter(name='data', in_=openapi.IN_BODY, required=True, schema=schema)
 
-    def add_manual_parameters(self, parameters):
+    def add_manual_parameters(self, parameters: Any):
         """Add/replace parameters from the given list of automatically generated request parameters.
 
         :param list[openapi.Parameter] parameters: genereated parameters
@@ -237,7 +240,7 @@ class SwaggerAutoSchema(ViewInspector):
         responses.update((str(sc), resp) for sc, resp in manual_responses.items())
         return responses
 
-    def get_response_schemas(self, response_serializers):
+    def get_response_schemas(self, response_serializers: Any):
         """Return the :class:`.openapi.Response` objects calculated for this view.
 
         :param dict response_serializers: response serializers as returned by :meth:`.get_response_serializers`
@@ -303,7 +306,7 @@ class SwaggerAutoSchema(ViewInspector):
 
         return natural_parameters + serializer_parameters
 
-    def get_operation_id(self, operation_keys=None):
+    def get_operation_id(self, operation_keys: Optional[Any] = None):
         """Return an unique ID for this operation. The ID must be unique across
         all :class:`.Operation` objects in the API.
 
@@ -318,7 +321,7 @@ class SwaggerAutoSchema(ViewInspector):
             operation_id = '_'.join(operation_keys)
         return operation_id
 
-    def split_summary_from_description(self, description):
+    def split_summary_from_description(self, description: Any):
         """Decide if and how to split a summary out of the given description. The default implementation
         uses the first paragraph of the description as a summary if it is less than 120 characters long.
 
@@ -374,7 +377,7 @@ class SwaggerAutoSchema(ViewInspector):
         """
         return self.overrides.get('deprecated', None)
 
-    def get_tags(self, operation_keys=None):
+    def get_tags(self, operation_keys: Optional[Any] = None):
         """Get a list of tags for this operation. Tags determine how operations relate with each other, and in the UI
         each tag will show as a group containing the operations that use it. If not provided in overrides,
         tags will be inferred from the operation url.

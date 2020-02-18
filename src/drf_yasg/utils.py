@@ -17,6 +17,15 @@ from rest_framework.views import APIView
 
 from .app_settings import swagger_settings
 
+from typing import Any, Optional, Mapping, List, Type, Union, Dict, Callable, TypeVar, Tuple
+from django.http.response import HttpResponseBase
+from rest_framework.fields import Field
+from rest_framework.parsers import BaseParser
+from rest_framework.renderers import BaseRenderer
+from rest_framework.serializers import Serializer, BaseSerializer
+from drf_yasg import openapi
+from drf_yasg.inspectors.base import FieldInspector, FilterInspector, PaginatorInspector
+from drf_yasg.openapi import Parameter, _IN_any
 logger = logging.getLogger(__name__)
 
 
@@ -30,10 +39,15 @@ class unset(object):
     pass
 
 
-def swagger_auto_schema(method=None, methods=None, auto_schema=unset, request_body=None, query_serializer=None,
-                        manual_parameters=None, operation_id=None, operation_description=None, operation_summary=None,
-                        security=None, deprecated=None, responses=None, field_inspectors=None, filter_inspectors=None,
-                        paginator_inspectors=None, tags=None, **extra_overrides):
+_SchemaOrRef = Union[openapi.Schema, openapi.SchemaRef]
+_SerializerOrClass = Union[Serializer, Type[Serializer]]
+_VIEW = TypeVar('_VIEW', bound=Callable[..., HttpResponseBase])
+def swagger_auto_schema(
+    method: Optional[str] = None,
+    methods: Optional[List[str]] = None, auto_schema: Optional[Type] = unset, request_body: Optional[Union[_SchemaOrRef, _SerializerOrClass]] = None, query_serializer: Optional[_SerializerOrClass] = None,
+                        manual_parameters: Optional[List[openapi.Parameter]] = None, operation_id: Optional[str] = None, operation_description: Optional[str] = None, operation_summary: Optional[str] = None,
+                        security: Optional[List[dict]] = None, deprecated: Optional[bool] = None, responses: Optional[Dict[Union[int, str], Union[_SchemaOrRef, openapi.Response, _SerializerOrClass, str, None]]] = None, field_inspectors: Optional[List[Type[FieldInspector]]] = None, filter_inspectors: Optional[List[Type[FilterInspector]]] = None,
+                        paginator_inspectors: Optional[List[Type[PaginatorInspector]]] = None, tags: Optional[List[str]] = None, **extra_overrides: Any) -> Callable[[_VIEW], _VIEW]:
     """Decorate a view method to customize the :class:`.Operation` object generated from it.
 
     `method` and `methods` are mutually exclusive and must only be present when decorating a view method that accepts
@@ -191,7 +205,7 @@ def swagger_auto_schema(method=None, methods=None, auto_schema=unset, request_bo
     return decorator
 
 
-def swagger_serializer_method(serializer_or_field):
+def swagger_serializer_method(serializer_or_field: Any) -> Callable[[_VIEW], _VIEW]:
     """
     Decorates the method of a serializers.SerializerMethodField
     to hint as to how Swagger should be generated for this field.
@@ -208,7 +222,7 @@ def swagger_serializer_method(serializer_or_field):
     return decorator
 
 
-def is_list_view(path, method, view):
+def is_list_view(path: Any, method: Any, view: Any) -> bool:
     """Check if the given path/method appears to represent a list view (as opposed to a detail/instance view).
 
     :param str path: view path
@@ -244,7 +258,7 @@ def is_list_view(path, method, view):
     return True
 
 
-def guess_response_status(method):
+def guess_response_status(method: str) -> int:
     if method == 'post':
         return status.HTTP_201_CREATED
     elif method == 'delete':
@@ -253,7 +267,7 @@ def guess_response_status(method):
         return status.HTTP_200_OK
 
 
-def param_list_to_odict(parameters):
+def param_list_to_odict(parameters: List[Parameter]) -> Dict[Tuple[str, _IN_any]]:
     """Transform a list of :class:`.Parameter` objects into an ``OrderedDict`` keyed on the ``(name, in_)`` tuple of
     each parameter.
 
@@ -268,7 +282,7 @@ def param_list_to_odict(parameters):
     return result
 
 
-def merge_params(parameters, overrides):
+def merge_params(parameters: List[Parameter], overrides: List[Parameter]) -> List[Parameter]:
     """Merge `overrides` into `parameters`. This is the same as appending `overrides` to `parameters`, but any element
     of `parameters` whose ``(name, in_)`` tuple collides with an element in `overrides` is replaced by it.
 
@@ -284,7 +298,8 @@ def merge_params(parameters, overrides):
     return list(parameters.values())
 
 
-def filter_none(obj):
+_T = TypeVar('_T')
+def filter_none(obj: _T) -> _T:
     """Remove ``None`` values from tuples, lists or dictionaries. Return other objects as-is.
 
     :param obj: the object
@@ -302,7 +317,7 @@ def filter_none(obj):
     return obj
 
 
-def force_serializer_instance(serializer):
+def force_serializer_instance(serializer: _SerializerOrClass) -> Serializer:
     """Force `serializer` into a ``Serializer`` instance. If it is not a ``Serializer`` class or instance, raises
     an assertion error.
 
@@ -320,7 +335,7 @@ def force_serializer_instance(serializer):
     return serializer
 
 
-def get_serializer_class(serializer):
+def get_serializer_class(serializer: Optional[_SerializerOrClass]) -> Type[BaseSerializer]:
     """Given a ``Serializer`` class or intance, return the ``Serializer`` class. If `serializer` is not a ``Serializer``
     class or instance, raises an assertion error.
 
@@ -340,7 +355,7 @@ def get_serializer_class(serializer):
     return type(serializer)
 
 
-def get_object_classes(classes_or_instances, expected_base_class=None):
+def get_object_classes(classes_or_instances: List[Union[type, object]], expected_base_class: Optional[type] = None) -> type:
     """Given a list of instances or class objects, return the list of their classes.
 
     :param classes_or_instances: mixed list to parse
@@ -363,7 +378,7 @@ def get_object_classes(classes_or_instances, expected_base_class=None):
     return result
 
 
-def get_consumes(parser_classes):
+def get_consumes(parser_classes: Union[BaseParser, Type[BaseParser]]) -> List[str]:
     """Extract ``consumes`` MIME types from a list of parser classes.
 
     :param list parser_classes: parser classes
@@ -387,7 +402,7 @@ def get_consumes(parser_classes):
     return non_form_media_types
 
 
-def get_produces(renderer_classes):
+def get_produces(renderer_classes: Union[BaseRenderer, Type[BaseRenderer]]) -> List[str]:
     """Extract ``produces`` MIME types from a list of renderer classes.
 
     :param list renderer_classes: renderer classes
@@ -402,7 +417,7 @@ def get_produces(renderer_classes):
     return media_types
 
 
-def decimal_as_float(field):
+def decimal_as_float(field: Field) -> bool:
     """Returns true if ``field`` is a django-rest-framework DecimalField and its ``coerce_to_string`` attribute or the
     ``COERCE_DECIMAL_TO_STRING`` setting is set to ``False``.
 
@@ -413,7 +428,7 @@ def decimal_as_float(field):
     return False
 
 
-def get_serializer_ref_name(serializer):
+def get_serializer_ref_name(serializer: Serializer) -> Optional[str]:
     """Get serializer's ref_name (or None for ModelSerializer if it is named 'NestedSerializer')
 
     :param serializer: Serializer instance
@@ -434,7 +449,7 @@ def get_serializer_ref_name(serializer):
     return ref_name
 
 
-def force_real_str(s, encoding='utf-8', strings_only=False, errors='strict'):
+def force_real_str(s: Any, encoding: str = 'utf-8', strings_only: bool = False, errors: str = 'strict') -> str:
     """
     Force `s` into a ``str`` instance.
 
@@ -451,7 +466,7 @@ def force_real_str(s, encoding='utf-8', strings_only=False, errors='strict'):
     return s
 
 
-def field_value_to_representation(field, value):
+def field_value_to_representation(field: Field, value: Any) -> Union[dict, list, str, int, float, bool, None]:
     """Convert a python value related to a field (default, choices, etc.) into its OpenAPI-compatible representation.
 
     :param serializers.Field field: field associated with the value
@@ -470,7 +485,7 @@ def field_value_to_representation(field, value):
     return json.loads(json.dumps(value, cls=encoders.JSONEncoder))
 
 
-def get_field_default(field):
+def get_field_default(field: Field) -> Any:
     """
     Get the default value for a field, converted to a JSON-compatible value while properly handling callables.
 
@@ -503,7 +518,7 @@ def get_field_default(field):
     return default
 
 
-def dict_has_ordered_keys(obj):
+def dict_has_ordered_keys(obj: Mapping) -> bool:
     """Check if a given object is a dict that maintains insertion order.
 
     :param obj: the dict object to check

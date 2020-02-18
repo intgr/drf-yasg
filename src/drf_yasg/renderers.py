@@ -13,14 +13,16 @@ from .openapi import Swagger
 from .utils import filter_none
 
 
+from typing import Any, Optional, List
+from drf_yasg.codecs import _OpenAPICodec
 class _SpecRenderer(BaseRenderer):
     """Base class for text renderers. Handles encoding and validation."""
     charset = 'utf-8'
-    validators = []
-    codec_class = None
+    validators: List[str] = []
+    codec_class: _OpenAPICodec = None
 
     @classmethod
-    def with_validators(cls, validators):
+    def with_validators(cls, validators: List[str]):
         assert all(vld in VALIDATORS for vld in validators), "allowed validators are " + ", ".join(VALIDATORS)
         return type(cls.__name__, (cls,), {'validators': validators})
 
@@ -62,7 +64,7 @@ class _UIRenderer(BaseRenderer):
     """Base class for web UI renderers. Handles loading and passing settings to the appropriate template."""
     media_type = 'text/html'
     charset = 'utf-8'
-    template = ''
+    template: str = ''
 
     def render(self, swagger, accepted_media_type=None, renderer_context=None):
         if not isinstance(swagger, Swagger):  # pragma: no cover
@@ -74,14 +76,14 @@ class _UIRenderer(BaseRenderer):
         self.set_context(renderer_context, swagger)
         return render_to_string(self.template, renderer_context, renderer_context['request'])
 
-    def set_context(self, renderer_context, swagger=None):
+    def set_context(self, renderer_context: Any, swagger: Optional[Any] = None) -> None:
         renderer_context['title'] = swagger.info.title or '' if swagger else ''
         renderer_context['version'] = swagger.info.version or '' if swagger else ''
         renderer_context['oauth2_config'] = json.dumps(self.get_oauth2_config(), cls=encoders.JSONEncoder)
         renderer_context['USE_SESSION_AUTH'] = swagger_settings.USE_SESSION_AUTH
         renderer_context.update(self.get_auth_urls())
 
-    def resolve_url(self, to):
+    def resolve_url(self, to: Any):
         if isinstance(to, Promise):
             to = str(to)
 
