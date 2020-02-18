@@ -42,12 +42,27 @@ class unset(object):
 _SchemaOrRef = Union[openapi.Schema, openapi.SchemaRef]
 _SerializerOrClass = Union[Serializer, Type[Serializer]]
 _VIEW = TypeVar('_VIEW', bound=Callable[..., HttpResponseBase])
+
+
 def swagger_auto_schema(
-    method: Optional[str] = None,
-    methods: Optional[List[str]] = None, auto_schema: Optional[Type] = unset, request_body: Optional[Union[_SchemaOrRef, _SerializerOrClass]] = None, query_serializer: Optional[_SerializerOrClass] = None,
-                        manual_parameters: Optional[List[openapi.Parameter]] = None, operation_id: Optional[str] = None, operation_description: Optional[str] = None, operation_summary: Optional[str] = None,
-                        security: Optional[List[dict]] = None, deprecated: Optional[bool] = None, responses: Optional[Dict[Union[int, str], Union[_SchemaOrRef, openapi.Response, _SerializerOrClass, str, None]]] = None, field_inspectors: Optional[List[Type[FieldInspector]]] = None, filter_inspectors: Optional[List[Type[FilterInspector]]] = None,
-                        paginator_inspectors: Optional[List[Type[PaginatorInspector]]] = None, tags: Optional[List[str]] = None, **extra_overrides: Any) -> Callable[[_VIEW], _VIEW]:
+        method: Optional[str] = None,
+        methods: Optional[List[str]] = None,
+        auto_schema: Optional[Type] = unset,
+        request_body: Optional[Union[_SchemaOrRef, _SerializerOrClass]] = None,
+        query_serializer: Optional[_SerializerOrClass] = None,
+        manual_parameters: Optional[List[openapi.Parameter]] = None,
+        operation_id: Optional[str] = None,
+        operation_description: Optional[str] = None,
+        operation_summary: Optional[str] = None,
+        security: Optional[List[dict]] = None,
+        deprecated: Optional[bool] = None,
+        responses: Optional[Dict[Union[int, str], Union[_SchemaOrRef, openapi.Response, _SerializerOrClass, str, None]]] = None,
+        field_inspectors: Optional[List[Type[FieldInspector]]] = None,
+        filter_inspectors: Optional[List[Type[FilterInspector]]] = None,
+        paginator_inspectors: Optional[List[Type[PaginatorInspector]]] = None,
+        tags: Optional[List[str]] = None,
+        **extra_overrides: Any
+    ) -> Callable[[_VIEW], _VIEW]:
     """Decorate a view method to customize the :class:`.Operation` object generated from it.
 
     `method` and `methods` are mutually exclusive and must only be present when decorating a view method that accepts
