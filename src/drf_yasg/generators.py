@@ -3,8 +3,12 @@ import logging
 import re
 import urllib.parse as urlparse
 from collections import OrderedDict, defaultdict
+from typing import Pattern, Callable, Optional, Any, Type, List, Dict, Tuple
+from urllib.request import Request
 
 import uritemplate
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 from django.urls import URLPattern, URLResolver
 from rest_framework import versioning
 from rest_framework.schemas import SchemaGenerator
@@ -12,21 +16,27 @@ from rest_framework.schemas.generators import EndpointEnumerator as _EndpointEnu
 from rest_framework.schemas.generators import endpoint_ordering, get_pk_name
 from rest_framework.schemas.utils import get_pk_description
 from rest_framework.settings import api_settings
+from rest_framework.views import APIView
 
 from . import openapi
 from .app_settings import swagger_settings
 from .errors import SwaggerGenerationError
 from .inspectors.field import get_basic_type_info, get_queryset_field, get_queryset_from_view
-from .openapi import ReferenceResolver, SwaggerDict
+from .openapi import ReferenceResolver, SwaggerDict, Info, Swagger
 from .utils import force_real_str, get_consumes, get_produces
 
 logger = logging.getLogger(__name__)
 
-PATH_PARAMETER_RE = re.compile(r'{(?P<parameter>\w+)}')
+PATH_PARAMETER_RE: Pattern[str] = re.compile(r'{(?P<parameter>\w+)}')
+
+_ViewFunc = Callable[..., HttpResponseBase]
 
 
 class EndpointEnumerator(_EndpointEnumerator):
-    def __init__(self, patterns=None, urlconf=None, request=None):
+    request: HttpRequest
+
+    # FIXME code style
+    def __init__(self, patterns: Optional[Any] = None, urlconf: Optional[Any] = None, request: Optional[HttpRequest] = None) -> None:
         super(EndpointEnumerator, self).__init__(patterns, urlconf)
         self.request = request
 
@@ -160,10 +170,22 @@ class OpenAPISchemaGenerator(object):
     This class iterates over all registered API endpoints and returns an appropriate OpenAPI 2.0 compliant schema.
     Method implementations shamelessly stolen and adapted from rest-framework ``SchemaGenerator``.
     """
-    endpoint_enumerator_class = EndpointEnumerator
-    reference_resolver_class = ReferenceResolver
+    endpoint_enumerator_class: Type[EndpointEnumerator] = EndpointEnumerator
+    reference_resolver_class: Type[ReferenceResolver] = ReferenceResolver
+    info: Info
+    version: str
+    consumes: List[str]
+    produces: List[str]
+    _gen: SchemaGenerator
 
-    def __init__(self, info, version='', url=None, patterns=None, urlconf=None):
+    def __init__(
+        self,
+        info: Info,
+        version: str = '',
+        url: Optional[str] = None,
+        patterns: Optional[Any] = None,
+        urlconf: Optional[Any] = None
+    ) -> None:
         """
 
         :param openapi.Info info: information about the API
@@ -197,10 +219,10 @@ class OpenAPISchemaGenerator(object):
                 logger.warning("path component of api base URL %s is ignored; use FORCE_SCRIPT_NAME instead" % url)
 
     @property
-    def url(self):
+    def url(self) -> Optional[str]:
         return self._gen.url
 
-    def get_security_definitions(self):
+    def get_security_definitions(self) -> Dict[str, Dict[Any, Any]]:
         """Get the security schemes for this API. This determines what is usable in security requirements,
         and helps clients configure their authorization credentials.
 
@@ -213,7 +235,9 @@ class OpenAPISchemaGenerator(object):
 
         return security_definitions
 
-    def get_security_requirements(self, security_definitions):
+    def get_security_requirements(
+        self, security_definitions: Dict[str, Dict[Any, Any]]
+    ) -> Optional[List[Dict[str, List[str]]]]:
         """Get the base (global) security requirements of the API. This is never called if
         :meth:`.get_security_definitions` returns `None`.
 
@@ -229,7 +253,7 @@ class OpenAPISchemaGenerator(object):
         security_requirements = sorted(security_requirements, key=list)
         return security_requirements
 
-    def get_schema(self, request=None, public=False):
+    def get_schema(self, request: Optional[Request] = None, public: bool = False) -> Swagger:
         """Generate a :class:`.Swagger` object representing the API schema.
 
         :param request: the request used for filtering accessible endpoints and finding the spec URI
@@ -261,7 +285,7 @@ class OpenAPISchemaGenerator(object):
             _url=url, _prefix=prefix, _version=self.version, **dict(components)
         )
 
-    def create_view(self, callback, method, request=None):
+    def create_view(self, callback: Any, method: Any, request: Optional[Any] = None) -> _ViewFunc:
         """Create a view instance from a view callback as registered in urlpatterns.
 
         :param callback: view callback registered in urlpatterns
@@ -300,7 +324,7 @@ class OpenAPISchemaGenerator(object):
             field_name = 'id'
         return path.replace('{pk}', '{%s}' % field_name)
 
-    def get_endpoints(self, request):
+    def get_endpoints(self, request: Optional[Request]) -> Dict[str, Tuple[Type[Any], List[Tuple[str, APIView]]]]:
         """Iterate over all the registered endpoints in the API and return a fake view with the right parameters.
 
         :param request: request to bind to the endpoint views

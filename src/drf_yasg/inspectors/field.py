@@ -20,19 +20,25 @@ from ..utils import (
 )
 from .base import FieldInspector, NotHandled, SerializerInspector, call_view_method
 
+from types import ModuleType
+from typing import Any, Optional, Callable, Tuple, List, Union, Dict
+from .base import FieldInspector, SerializerInspector
+from ..openapi import _TYPE_any, _FORMAT_any
+typing: Optional[ModuleType]
+inspect_signature: Optional[Callable]
 logger = logging.getLogger(__name__)
 
 
 class InlineSerializerInspector(SerializerInspector):
     """Provides serializer conversions using :meth:`.FieldInspector.field_to_swagger_object`."""
-
     #: whether to output :class:`.Schema` definitions inline or into the ``definitions`` section
+    use_definitions: bool
     use_definitions = False
 
-    def get_schema(self, serializer):
+    def get_schema(self, serializer: Any) -> Any:
         return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
 
-    def add_manual_parameters(self, serializer, parameters):
+    def add_manual_parameters(self, serializer: Any, parameters: Any) -> Any:
         """Add/replace parameters from the given list of automatically generated request parameters. This method
         is called only when the serializer is converted into a list of parameters for use in a form data request.
 
@@ -43,7 +49,7 @@ class InlineSerializerInspector(SerializerInspector):
         """
         return parameters
 
-    def get_request_parameters(self, serializer, in_):
+    def get_request_parameters(self, serializer: Any, in_: Any) -> Any:
         fields = getattr(serializer, 'fields', {})
         parameters = [
             self.probe_field_inspectors(
@@ -57,20 +63,20 @@ class InlineSerializerInspector(SerializerInspector):
 
         return self.add_manual_parameters(serializer, parameters)
 
-    def get_property_name(self, field_name):
+    def get_property_name(self, field_name: Any) -> Any:
         return field_name
 
-    def get_parameter_name(self, field_name):
+    def get_parameter_name(self, field_name: Any) -> Any:
         return field_name
 
-    def get_serializer_ref_name(self, serializer):
+    def get_serializer_ref_name(self, serializer: Any) -> Any:
         return get_serializer_ref_name(serializer)
 
     def _has_ref_name(self, serializer):
         serializer_meta = getattr(serializer, 'Meta', None)
         return hasattr(serializer_meta, 'ref_name')
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
 
         if isinstance(field, (serializers.ListSerializer, serializers.ListField)):
@@ -140,10 +146,10 @@ class InlineSerializerInspector(SerializerInspector):
 
 
 class ReferencingSerializerInspector(InlineSerializerInspector):
-    use_definitions = True
+    use_definitions: bool = True
 
 
-def get_queryset_field(queryset, field_name):
+def get_queryset_field(queryset: Any, field_name: Any) -> Any:
     """Try to get information about a model and model field from a queryset.
 
     :param queryset: the queryset
@@ -156,7 +162,7 @@ def get_queryset_field(queryset, field_name):
     return model, model_field
 
 
-def get_model_field(model, field_name):
+def get_model_field(model: Any, field_name: Any) -> Any:
     """Try to get the given field from a django db model.
 
     :param model: the model
@@ -172,7 +178,7 @@ def get_model_field(model, field_name):
         return None
 
 
-def get_queryset_from_view(view, serializer=None):
+def get_queryset_from_view(view: Any, serializer: Optional[Any] = None) -> Any:
     """Try to get the queryset of the given view
 
     :param view: the view instance or class
@@ -191,7 +197,7 @@ def get_queryset_from_view(view, serializer=None):
         return None
 
 
-def get_parent_serializer(field):
+def get_parent_serializer(field: Any) -> Any:
     """Get the nearest parent ``Serializer`` instance for the given field.
 
     :return: ``Serializer`` or ``None``
@@ -205,7 +211,7 @@ def get_parent_serializer(field):
     return None  # pragma: no cover
 
 
-def get_related_model(model, source):
+def get_related_model(model: Any, source: Any) -> Any:
     """Try to find the other side of a model relationship given the name of a related field.
 
     :param model: one side of the relationship
@@ -225,7 +231,7 @@ def get_related_model(model, source):
 class RelatedFieldInspector(FieldInspector):
     """Provides conversions for ``RelatedField``\\ s."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
 
         if isinstance(field, serializers.ManyRelatedField):
@@ -280,7 +286,7 @@ class RelatedFieldInspector(FieldInspector):
         return SwaggerType(type=openapi.TYPE_STRING)
 
 
-def find_regex(regex_field):
+def find_regex(regex_field: Any) -> Any:
     """Given a ``Field``, look for a ``RegexValidator`` and try to extract its pattern and return it as a string.
 
     :param serializers.Field regex_field: the field instance
@@ -315,8 +321,8 @@ def find_regex(regex_field):
     return pattern
 
 
-numeric_fields = (serializers.IntegerField, serializers.FloatField, serializers.DecimalField)
-limit_validators = [
+numeric_fields: Any = (serializers.IntegerField, serializers.FloatField, serializers.DecimalField)
+limit_validators: Any = [
     # minimum and maximum apply to numbers
     (validators.MinValueValidator, numeric_fields, 'minimum', operator.__gt__),
     (validators.MaxValueValidator, numeric_fields, 'maximum', operator.__lt__),
@@ -331,7 +337,7 @@ limit_validators = [
 ]
 
 
-def find_limits(field):
+def find_limits(field: Any) -> Any:
     """Given a ``Field``, look for min/max value/length validators and return appropriate limit validation attributes.
 
     :param serializers.Field field: the field instance
@@ -368,11 +374,12 @@ def find_limits(field):
     return OrderedDict(sorted(limits.items()))
 
 
-def decimal_field_type(field):
+def decimal_field_type(field: Any) -> Any:
     return openapi.TYPE_NUMBER if decimal_as_float(field) else openapi.TYPE_STRING
 
 
-model_field_to_basic_type = [
+_BasicType = Tuple[_TYPE_any, Union[_FORMAT_any, Callable[[serializers.Field], _FORMAT_any], None]]
+model_field_to_basic_type: List[Tuple[models.Field, _BasicType]] = [
     (models.AutoField, (openapi.TYPE_INTEGER, None)),
     (models.BinaryField, (openapi.TYPE_STRING, openapi.FORMAT_BINARY)),
     (models.BooleanField, (openapi.TYPE_BOOLEAN, None)),
@@ -392,9 +399,9 @@ model_field_to_basic_type = [
     (models.CharField, (openapi.TYPE_STRING, None)),
 ]
 
-ip_format = {'ipv4': openapi.FORMAT_IPV4, 'ipv6': openapi.FORMAT_IPV6}
+ip_format: Dict[str, _FORMAT_any] = {'ipv4': openapi.FORMAT_IPV4, 'ipv6': openapi.FORMAT_IPV6}
 
-serializer_field_to_basic_type = [
+serializer_field_to_basic_type: List[Tuple[serializers.Field, _BasicType]] = [
     (serializers.EmailField, (openapi.TYPE_STRING, openapi.FORMAT_EMAIL)),
     (serializers.SlugField, (openapi.TYPE_STRING, openapi.FORMAT_SLUG)),
     (serializers.URLField, (openapi.TYPE_STRING, openapi.FORMAT_URI)),
@@ -413,10 +420,10 @@ serializer_field_to_basic_type = [
     (serializers.ModelField, (openapi.TYPE_STRING, None)),
 ]
 
-basic_type_info = serializer_field_to_basic_type + model_field_to_basic_type
+basic_type_info: List[Tuple[Union[models.Field, serializers.Field], _BasicType]] = serializer_field_to_basic_type + model_field_to_basic_type
 
 
-def get_basic_type_info(field):
+def get_basic_type_info(field: Any) -> Any:
     """Given a serializer or model ``Field``, return its basic type information - ``type``, ``format``, ``pattern``,
     and any applicable min/max limit values.
 
@@ -454,20 +461,20 @@ def get_basic_type_info(field):
     return result
 
 
-def decimal_return_type():
+def decimal_return_type() -> Any:
     return openapi.TYPE_STRING if rest_framework_settings.COERCE_DECIMAL_TO_STRING else openapi.TYPE_NUMBER
 
 
-def get_origin_type(hint_class):
+def get_origin_type(hint_class: Any) -> Any:
     return getattr(hint_class, '__origin__', None) or hint_class
 
 
-def hint_class_issubclass(hint_class, check_class):
+def hint_class_issubclass(hint_class: Any, check_class: Any) -> Any:
     origin_type = get_origin_type(hint_class)
     return inspect.isclass(origin_type) and issubclass(origin_type, check_class)
 
 
-hinting_type_info = [
+hinting_type_info: List[Tuple[Union[type, Tuple[type, ...]], _BasicType]] = [
     (bool, (openapi.TYPE_BOOLEAN, None)),
     (int, (openapi.TYPE_INTEGER, None)),
     (str, (openapi.TYPE_STRING, None)),
@@ -489,7 +496,7 @@ else:
         return getattr(tp, '__args__', ())
 
 
-def inspect_collection_hint_class(hint_class):
+def inspect_collection_hint_class(hint_class: Any) -> Any:
     args = typing_get_args(hint_class)
     child_class = args[0] if args else str
     child_type_info = get_basic_type_info_from_hint(child_class) or {'type': openapi.TYPE_STRING}
@@ -509,7 +516,7 @@ def _get_union_types(hint_class):
         return hint_class.__args__
 
 
-def get_basic_type_info_from_hint(hint_class):
+def get_basic_type_info_from_hint(hint_class: Any) -> Any:
     """Given a class (eg from a SerializerMethodField's return type hint,
     return its basic type information - ``type``, ``format``, ``pattern``,
     and any applicable min/max limit values.
@@ -553,7 +560,7 @@ class SerializerMethodFieldInspector(FieldInspector):
     decorator.
     """
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         if not isinstance(field, serializers.SerializerMethodField):
             return NotHandled
 
@@ -615,7 +622,7 @@ class SimpleFieldInspector(FieldInspector):
     and min/max validators.
     """
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         type_info = get_basic_type_info(field)
         if type_info is None:
             return NotHandled
@@ -627,7 +634,7 @@ class SimpleFieldInspector(FieldInspector):
 class ChoiceFieldInspector(FieldInspector):
     """Provides conversions for ``ChoiceField`` and ``MultipleChoiceField``."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
 
         if isinstance(field, serializers.ChoiceField):
@@ -684,7 +691,7 @@ class ChoiceFieldInspector(FieldInspector):
 class FileFieldInspector(FieldInspector):
     """Provides conversions for ``FileField``\\ s."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
 
         if isinstance(field, serializers.FileField):
@@ -711,7 +718,7 @@ class FileFieldInspector(FieldInspector):
 class DictFieldInspector(FieldInspector):
     """Provides conversion for ``DictField``."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
 
         if isinstance(field, serializers.DictField) and swagger_object_type == openapi.Schema:
@@ -727,7 +734,7 @@ class DictFieldInspector(FieldInspector):
 class HiddenFieldInspector(FieldInspector):
     """Hide ``HiddenField``."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         if isinstance(field, serializers.HiddenField):
             return None
 
@@ -737,7 +744,7 @@ class HiddenFieldInspector(FieldInspector):
 class JSONFieldInspector(FieldInspector):
     """Provides conversion for ``JSONField``."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
 
         if isinstance(field, serializers.JSONField) and swagger_object_type == openapi.Schema:
@@ -749,7 +756,7 @@ class JSONFieldInspector(FieldInspector):
 class StringDefaultFieldInspector(FieldInspector):
     """For otherwise unhandled fields, return them as plain :data:`.TYPE_STRING` objects."""
 
-    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):  # pragma: no cover
+    def field_to_swagger_object(self, field: Any, swagger_object_type: Any, use_references: Any, **kwargs: Any) -> Any:  # pragma: no cover
         # TODO unhandled fields: TimeField
         SwaggerType, ChildSwaggerType = self._get_partial_types(field, swagger_object_type, use_references, **kwargs)
         return SwaggerType(type=openapi.TYPE_STRING)
@@ -768,7 +775,7 @@ except ImportError:  # pragma: no cover
 class CamelCaseJSONFilter(FieldInspector):
     """Converts property names to camelCase if ``djangorestframework_camel_case`` is used."""
 
-    def camelize_string(self, s):
+    def camelize_string(self, s: Any) -> Any:
         """Hack to force ``djangorestframework_camel_case`` to camelize a plain string.
 
         :param str s: the string
@@ -777,7 +784,7 @@ class CamelCaseJSONFilter(FieldInspector):
         """
         return next(iter(camelize({s: ''})))
 
-    def camelize_schema(self, schema):
+    def camelize_schema(self, schema: Any) -> None:
         """Recursively camelize property names for the given schema using ``djangorestframework_camel_case``.
         The target schema object must be modified in-place.
 
@@ -792,7 +799,7 @@ class CamelCaseJSONFilter(FieldInspector):
             if getattr(schema, 'required', []):
                 schema.required = [self.camelize_string(p) for p in schema.required]
 
-    def process_result(self, result, method_name, obj, **kwargs):
+    def process_result(self, result: Any, method_name: Any, obj: Any, **kwargs: Any) -> Any:
         if isinstance(result, openapi.Schema.OR_REF) and self.is_camel_case():
             schema = openapi.resolve_ref(result, self.components)
             self.camelize_schema(schema)

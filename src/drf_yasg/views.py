@@ -1,29 +1,39 @@
 import warnings
 from functools import WRAPPER_ASSIGNMENTS, wraps
+from typing import Type, Optional, Any, Callable, Dict
 
 from django.utils.cache import add_never_cache_headers
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from rest_framework import exceptions
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.views import APIView
 
 from .app_settings import swagger_settings
+from .generators import OpenAPISchemaGenerator
 from .renderers import (
     OpenAPIRenderer, ReDocOldRenderer, ReDocRenderer, SwaggerJSONRenderer, SwaggerUIRenderer, SwaggerYAMLRenderer,
     _SpecRenderer
 )
 
-SPEC_RENDERERS = (SwaggerYAMLRenderer, SwaggerJSONRenderer, OpenAPIRenderer)
-UI_RENDERERS = {
+from typing import Any, Optional, List, Type, Tuple, Dict, Callable
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.permissions import BasePermission
+from rest_framework.renderers import BaseRenderer
+from drf_yasg.generators import OpenAPISchemaGenerator
+from drf_yasg.openapi import Info
+from drf_yasg.renderers import _SpecRenderer
+SPEC_RENDERERS: Tuple[Type[_SpecRenderer], ...] = (SwaggerYAMLRenderer, SwaggerJSONRenderer, OpenAPIRenderer)
+UI_RENDERERS: Dict[str, Tuple[Type[BaseRenderer], ...]] = {
     'swagger': (SwaggerUIRenderer, ReDocRenderer),
     'redoc': (ReDocRenderer, SwaggerUIRenderer),
     'redoc-old': (ReDocOldRenderer, ReDocRenderer, SwaggerUIRenderer),
 }
 
 
-def deferred_never_cache(view_func):
+def deferred_never_cache(view_func: Any) -> Any:
     """
     Decorator that adds headers to a response so that it will
     never be cached.
@@ -46,9 +56,28 @@ def deferred_never_cache(view_func):
 
     return _wrapped_view_func
 
+_View = Callable[..., Response]
 
-def get_schema_view(info=None, url=None, patterns=None, urlconf=None, public=False, validators=None,
-                    generator_class=None, authentication_classes=None, permission_classes=None):
+
+class _SchemaView(APIView):
+    public: bool
+    generator_class: Type[OpenAPISchemaGenerator]
+    def get(
+        self, request: Request, version: str = ..., format: Optional[Any] = ...  # XXX format is unused?
+    ) -> Response: ...
+    @classmethod
+    def apply_cache(cls, view: _View, cache_timeout: int, cache_kwargs: Dict[str, Any]) -> _View: ...
+    @classmethod
+    def as_cached_view(cls, cache_timeout: int = ..., cache_kwargs: Dict[str, Any] = ..., **initkwargs) -> _View: ...
+    @classmethod
+    def without_ui(cls, cache_timeout: int = ..., cache_kwargs: Dict[str, Any] = ...) -> _View: ...
+    @classmethod
+    def with_ui(cls, renderer: str = ..., cache_timeout: int = ..., cache_kwargs: Dict[str, Any] = ...) -> _View: ...
+
+
+
+def get_schema_view(info: Optional[Info] = None, url: Optional[str] = None, patterns: Optional[Any] = None, urlconf: Optional[Any] = None, public: bool = False, validators: Optional[List[str]] = None,
+                    generator_class: Optional[Type[OpenAPISchemaGenerator]] = None, authentication_classes: Optional[List[Type[BaseAuthentication]]] = None, permission_classes: Optional[List[Type[BasePermission]]] = None) -> _SchemaView:
     """Create a SchemaView class with default renderers and generators.
 
     :param .Info info: information about the API; if omitted, defaults to :ref:`DEFAULT_INFO <default-swagger-settings>`
@@ -75,7 +104,7 @@ def get_schema_view(info=None, url=None, patterns=None, urlconf=None, public=Fal
     validators = validators or []
     _spec_renderers = tuple(renderer.with_validators(validators) for renderer in SPEC_RENDERERS)
 
-    class SchemaView(APIView):
+    class SchemaView(_SchemaView):
         _ignore_model_permissions = True
         schema = None  # exclude from schema
         public = _public

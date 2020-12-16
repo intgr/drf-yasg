@@ -3,6 +3,7 @@ import logging
 import re
 import urllib.parse as urlparse
 from collections import OrderedDict
+from typing import overload, Any
 
 from django.urls import get_script_prefix
 from django.utils.functional import Promise
@@ -10,53 +11,60 @@ from inflection import camelize
 
 from .utils import dict_has_ordered_keys, filter_none, force_real_str
 
+from types import ModuleType
+from typing import Any, Optional, Union, List, Dict, Tuple, Type, ClassVar, Callable, KeysView, Iterable, Iterator
+from rest_framework.serializers import Serializer
+from typing_extensions import Literal
+FORMAT_DATE: Literal['date']
+FORMAT_EMAIL: Literal['email']
+FORMAT_UUID: Literal['uuid']
 try:
     from collections import abc as collections_abc
 except ImportError:
-    collections_abc = collections
+    collections_abc: ModuleType = collections
 
 logger = logging.getLogger(__name__)
 
-TYPE_OBJECT = "object"  #:
-TYPE_STRING = "string"  #:
-TYPE_NUMBER = "number"  #:
-TYPE_INTEGER = "integer"  #:
-TYPE_BOOLEAN = "boolean"  #:
-TYPE_ARRAY = "array"  #:
-TYPE_FILE = "file"  #:
+TYPE_OBJECT: Literal['object'] = "object"  #:
+TYPE_STRING: Literal['string'] = "string"  #:
+TYPE_NUMBER: Literal['number'] = "number"  #:
+TYPE_INTEGER: Literal['integer'] = "integer"  #:
+TYPE_BOOLEAN: Literal['boolean'] = "boolean"  #:
+TYPE_ARRAY: Literal['array'] = "array"  #:
+TYPE_FILE: Literal['file'] = "file"  #:
 
 # officially supported by Swagger 2.0 spec
 FORMAT_DATE = "date"  #:
-FORMAT_DATETIME = "date-time"  #:
-FORMAT_PASSWORD = "password"  #:
-FORMAT_BINARY = "binary"  #:
-FORMAT_BASE64 = "bytes"  #:
-FORMAT_FLOAT = "float"  #:
-FORMAT_DOUBLE = "double"  #:
-FORMAT_INT32 = "int32"  #:
-FORMAT_INT64 = "int64"  #:
+FORMAT_DATETIME: Literal['date-time'] = "date-time"  #:
+FORMAT_PASSWORD: Literal['password'] = "password"  #:
+FORMAT_BINARY: Literal['binary'] = "binary"  #:
+FORMAT_BASE64: Literal['bytes'] = "bytes"  #:
+FORMAT_FLOAT: Literal['float'] = "float"  #:
+FORMAT_DOUBLE: Literal['double'] = "double"  #:
+FORMAT_INT32: Literal['int32'] = "int32"  #:
+FORMAT_INT64: Literal['int64'] = "int64"  #:
 
 # defined in JSON-schema
 FORMAT_EMAIL = "email"  #:
-FORMAT_IPV4 = "ipv4"  #:
-FORMAT_IPV6 = "ipv6"  #:
-FORMAT_URI = "uri"  #:
+FORMAT_IPV4: Literal['ipv4'] = "ipv4"  #:
+FORMAT_IPV6: Literal['ipv6'] = "ipv6"  #:
+FORMAT_URI: Literal['uri'] = "uri"  #:
 
 # pulled out of my ass
 FORMAT_UUID = "uuid"  #:
-FORMAT_SLUG = "slug"  #:
-FORMAT_DECIMAL = "decimal"
+FORMAT_SLUG: Literal['slug'] = "slug"  #:
+FORMAT_DECIMAL: Literal['decimal'] = "decimal"
 
-IN_BODY = 'body'  #:
-IN_PATH = 'path'  #:
-IN_QUERY = 'query'  #:
-IN_FORM = 'formData'  #:
-IN_HEADER = 'header'  #:
+IN_BODY: Literal['body'] = 'body'  #:
+IN_PATH: Literal['path'] = 'path'  #:
+IN_QUERY: Literal['query'] = 'query'  #:
+IN_FORM: Literal['formData'] = 'formData'  #:
+IN_HEADER: Literal['header'] = 'header'  #:
 
-SCHEMA_DEFINITIONS = 'definitions'  #:
+SCHEMA_DEFINITIONS: Literal['definitions'] = 'definitions'  #:
 
 
-def make_swagger_name(attribute_name):
+def make_swagger_name(attribute_name: str) -> str:
     """
     Convert a python variable name into a Swagger spec attribute name.
 
@@ -89,8 +97,8 @@ class SwaggerDict(OrderedDict):
 
      Used as a base class for all Swagger helper models.
     """
-
-    def __init__(self, **attrs):
+    _extras__: Dict[str, Any]
+    def __init__(self, **attrs: Any) -> None:
         super(SwaggerDict, self).__init__()
         self._extras__ = attrs
         if type(self) == SwaggerDict:
@@ -103,7 +111,7 @@ class SwaggerDict(OrderedDict):
         if value is not None:
             self[make_swagger_name(key)] = value
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         if item.startswith('_'):
             raise AttributeError
         try:
@@ -118,7 +126,7 @@ class SwaggerDict(OrderedDict):
             return
         del self[make_swagger_name(item)]
 
-    def _insert_extras__(self):
+    def _insert_extras__(self) -> None:
         """
         From an ordering perspective, it is desired that extra attributes such as vendor extensions stay at the
         bottom of the object. However, python2.7's OrderdDict craps out if you try to insert into it before calling
@@ -155,7 +163,7 @@ class SwaggerDict(OrderedDict):
 
         return obj
 
-    def as_odict(self):
+    def as_odict(self) -> OrderedDict:
         """Convert this object into an ``OrderedDict`` instance.
 
         :rtype: OrderedDict
@@ -170,7 +178,10 @@ class SwaggerDict(OrderedDict):
 
 
 class Contact(SwaggerDict):
-    def __init__(self, name=None, url=None, email=None, **extra):
+    name: Optional[str]
+    url: Optional[str]
+    email: Optional[str]
+    def __init__(self, name: Optional[str] = None, url: Optional[str] = None, email: Optional[str] = None, **extra: Any) -> None:
         """Swagger Contact object
 
         At least one of the following fields is required:
@@ -189,7 +200,9 @@ class Contact(SwaggerDict):
 
 
 class License(SwaggerDict):
-    def __init__(self, name, url=None, **extra):
+    name: str
+    url: Optional[str]
+    def __init__(self, name: str, url: Optional[str] = None, **extra: Any) -> None:
         """Swagger License object
 
         :param str name: Required. License name
@@ -204,8 +217,14 @@ class License(SwaggerDict):
 
 
 class Info(SwaggerDict):
-    def __init__(self, title, default_version, description=None, terms_of_service=None, contact=None, license=None,
-                 **extra):
+    title: str
+    _default_version: str
+    description: Optional[str]
+    terms_of_service: Optional[str]
+    contact: Optional[Contact]
+    license: Optional[License]
+    def __init__(self, title: str, default_version: str, description: Optional[str] = None, terms_of_service: Optional[str] = None, contact: Optional[Contact] = None, license: Optional[License] = None,
+                 **extra: Any) -> None:
         """Swagger Info object
 
         :param str title: Required. API title.
@@ -232,8 +251,19 @@ class Info(SwaggerDict):
 
 
 class Swagger(SwaggerDict):
-    def __init__(self, info=None, _url=None, _prefix=None, _version=None, consumes=None, produces=None,
-                 security_definitions=None, security=None, paths=None, definitions=None, **extra):
+    swagger: str
+    info: Optional[Info]
+    base_path: Optional[str]
+    consumes: Optional[List[str]]
+    produces: Optional[List[str]]
+    security_definitions: Optional[Dict[str, dict]]
+    security: Optional[Dict[str, List[str]]]
+    paths: Optional[Paths]
+    definitions: Optional[Dict[str, Schema]]
+    host: str
+    schemes: List[str]
+    def __init__(self, info: Optional[Info] = None, _url: Optional[str] = None, _prefix: Optional[str] = None, _version: Optional[str] = None, consumes: Optional[List[str]] = None, produces: Optional[List[str]] = None,
+                 security_definitions: Optional[Dict[str, dict]] = None, security: Optional[Dict[str, List[str]]] = None, paths: Optional[Paths] = None, definitions: Optional[Dict[str, Schema]] = None, **extra: Any) -> None:
         """Root Swagger object.
 
         :param .Info info: info object
@@ -269,7 +299,7 @@ class Swagger(SwaggerDict):
         self._insert_extras__()
 
     @classmethod
-    def get_base_path(cls, script_prefix, api_prefix):
+    def get_base_path(cls, script_prefix: str, api_prefix: str) -> str:
         """Determine an appropriate value for ``basePath`` based on the SCRIPT_NAME and the api common prefix.
 
         :param str script_prefix: script prefix as defined by django ``get_script_prefix``
@@ -294,7 +324,7 @@ class Swagger(SwaggerDict):
 
 
 class Paths(SwaggerDict):
-    def __init__(self, paths, **extra):
+    def __init__(self, paths: Dict[str, PathItem], **extra: Any) -> None:
         """A listing of all the paths in the API.
 
         :param dict[str,PathItem] paths:
@@ -308,10 +338,18 @@ class Paths(SwaggerDict):
 
 
 class PathItem(SwaggerDict):
-    OPERATION_NAMES = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch']
+    get: Optional[Operation]
+    head: Optional[Operation]
+    post: Optional[Operation]
+    put: Optional[Operation]
+    patch: Optional[Operation]
+    delete: Optional[Operation]
+    options: Optional[Operation]
+    parameters: Optional[List[Parameter]]
+    OPERATION_NAMES: ClassVar[List[str]] = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch']
 
-    def __init__(self, get=None, put=None, post=None, delete=None, options=None,
-                 head=None, patch=None, parameters=None, **extra):
+    def __init__(self, get: Optional[Operation] = None, put: Optional[Operation] = None, post: Optional[Operation] = None, delete: Optional[Operation] = None, options: Optional[Operation] = None,
+                 head: Optional[Operation] = None, patch: Optional[Operation] = None, parameters: Optional[List[Parameter]] = None, **extra: Any) -> None:
         """Information about a single path
 
         :param Operation get: operation for GET
@@ -335,7 +373,7 @@ class PathItem(SwaggerDict):
         self._insert_extras__()
 
     @property
-    def operations(self):
+    def operations(self) -> List[Tuple[str, Operation]]:
         """A list of all standard Operations on this PathItem object. See :attr:`.OPERATION_NAMES`.
 
         :return: list of (method name, Operation) tuples
@@ -345,8 +383,17 @@ class PathItem(SwaggerDict):
 
 
 class Operation(SwaggerDict):
-    def __init__(self, operation_id, responses, parameters=None, consumes=None, produces=None, summary=None,
-                 description=None, tags=None, security=None, **extra):
+    operation_id: str
+    responses: Responses
+    parameters: Optional[List[Parameter]]
+    consumes: Optional[List[str]]
+    produces: Optional[List[str]]
+    summary: Optional[str]
+    description: Optional[str]
+    tags: Optional[List[str]]
+    security: Optional[Dict[str, List[str]]]
+    def __init__(self, operation_id: str, responses: Responses, parameters: Optional[List[Parameter]] = None, consumes: Optional[List[str]] = None, produces: Optional[List[str]] = None, summary: Optional[str] = None,
+                 description: Optional[str] = None, tags: Optional[List[str]] = None, security: Optional[Dict[str, List[str]]] = None, **extra: Any) -> None:
         """Information about an API operation (path + http method combination)
 
         :param str operation_id: operation ID, should be unique across all operations
@@ -383,8 +430,16 @@ def _check_type(type, format, enum, pattern, items, _obj_type):
         raise AssertionError("[format, enum, pattern] can only be applied to primitive " + _obj_type)
 
 
+_EnumType = Union[List[str], List[int], List[bool], List[float]]
+_FORMAT_any = Literal['date', 'date-time', 'password', 'binary', 'bytes', 'float', 'double', 'int32', 'int64', 'email', 'ipv4', 'ipv6', 'uri', 'uuid', 'slug', 'decimal']
+_TYPE_any = Literal['object', 'string', 'number', 'integer', 'boolean', 'array', 'file']
 class Items(SwaggerDict):
-    def __init__(self, type=None, format=None, enum=None, pattern=None, items=None, **extra):
+    type: _TYPE_any
+    format: Optional[_FORMAT_any]
+    enum: Optional[_EnumType]
+    pattern: Optional[str]
+    items_: Optional[Items]
+    def __init__(self, type: _TYPE_any = None, format: Optional[_FORMAT_any] = None, enum: Optional[_EnumType] = None, pattern: Optional[str] = None, items: Optional[Items] = None, **extra: Any) -> None:
         """Used when defining an array :class:`.Parameter` to describe the array elements.
 
         :param str type: type of the array elements; must not be ``object``
@@ -404,9 +459,22 @@ class Items(SwaggerDict):
         _check_type(type, format, enum, pattern, items, self.__class__)
 
 
+_SchemaOrRef = Union[Schema, SchemaRef]
+_IN_any = Literal['body', 'path', 'query', 'formData', 'header']
 class Parameter(SwaggerDict):
-    def __init__(self, name, in_, description=None, required=None, schema=None,
-                 type=None, format=None, enum=None, pattern=None, items=None, default=None, **extra):
+    name: str
+    in_: _IN_any
+    description: Optional[str]
+    required: Optional[bool]
+    schema: Optional[_SchemaOrRef]
+    type: Optional[_TYPE_any]
+    format: Optional[_FORMAT_any]
+    enum: Optional[_EnumType]
+    pattern: Optional[str]
+    items_: Optional[Items]
+    default: Optional[Any]
+    def __init__(self, name: str, in_: _IN_any, description: Optional[str] = None, required: Optional[bool] = None, schema: Optional[_SchemaOrRef] = None,
+                 type: Optional[_TYPE_any] = None, format: Optional[_FORMAT_any] = None, enum: Optional[_EnumType] = None, pattern: Optional[str] = None, items: Optional[Items] = None, default: Optional[Any] = None, **extra: Any) -> None:
         """Describe parameters accepted by an :class:`.Operation`. Each parameter should be a unique combination of
         (`name`, `in_`). ``body`` and ``form`` parameters in the same operation are mutually exclusive.
 
@@ -452,10 +520,22 @@ class Parameter(SwaggerDict):
 
 
 class Schema(SwaggerDict):
-    OR_REF = ()  #: useful for type-checking, e.g ``isinstance(obj, openapi.Schema.OR_REF)``
+    title: Optional[str]
+    description: Optional[str]
+    type: Optional[_TYPE_any]
+    format: Optional[_FORMAT_any]
+    enum: Optional[_EnumType]
+    pattern: Optional[str]
+    properties: Optional[Any]
+    additional_properties: Optional[Any]
+    required: Optional[Any]
+    items_: Optional[Any]
+    default: Optional[Any]
+    read_only: Optional[bool]
+    OR_REF: ClassVar[Tuple[Type[Schema], Type[SchemaRef]]] = ()  #: useful for type-checking, e.g ``isinstance(obj, openapi.Schema.OR_REF)``
 
-    def __init__(self, title=None, description=None, type=None, format=None, enum=None, pattern=None, properties=None,
-                 additional_properties=None, required=None, items=None, default=None, read_only=None, **extra):
+    def __init__(self, title: Optional[str] = None, description: Optional[str] = None, type: Optional[_TYPE_any] = None, format: Optional[_FORMAT_any] = None, enum: Optional[_EnumType] = None, pattern: Optional[str] = None, properties: Optional[Any] = None,
+                 additional_properties: Optional[Any] = None, required: Optional[List[str]] = None, items: Optional[Any] = None, default: Optional[Any] = None, read_only: Optional[bool] = None, **extra: Any) -> None:
         """Describes a complex object accepted as parameter or returned as a response.
 
         :param str title: schema title
@@ -506,9 +586,10 @@ class Schema(SwaggerDict):
 
 
 class _Ref(SwaggerDict):
-    ref_name_re = re.compile(r"#/(?P<scope>.+)/(?P<name>[^/]+)$")
+    ref: Any
+    ref_name_re: Any = re.compile(r"#/(?P<scope>.+)/(?P<name>[^/]+)$")
 
-    def __init__(self, resolver, name, scope, expected_type, ignore_unresolved=False):
+    def __init__(self, resolver: Any, name: Any, scope: Any, expected_type: Any, ignore_unresolved: bool = False) -> None:
         """Base class for all reference types. A reference object has only one property, ``$ref``, which must be a JSON
         reference to a valid object in the specification, e.g. ``#/definitions/Article`` to refer to an article model.
 
@@ -527,7 +608,7 @@ class _Ref(SwaggerDict):
                 .format(actual=type(obj).__name__, expected=expected_type.__name__)
         self.ref = ref_name
 
-    def resolve(self, resolver):
+    def resolve(self, resolver: Any) -> Any:
         """Get the object targeted by this reference from the given component resolver.
 
         :param .ReferenceResolver resolver: component resolver which must contain the referneced object
@@ -536,17 +617,17 @@ class _Ref(SwaggerDict):
         ref_match = self.ref_name_re.match(self.ref)
         return resolver.get(ref_match.group('name'), scope=ref_match.group('scope'))
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         if key == "$ref":
             return super(_Ref, self).__setitem__(key, value)
         raise NotImplementedError("only $ref can be set on Reference objects (not %s)" % key)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         raise NotImplementedError("cannot delete property of Reference object")
 
 
 class SchemaRef(_Ref):
-    def __init__(self, resolver, schema_name, ignore_unresolved=False):
+    def __init__(self, resolver: Any, schema_name: Any, ignore_unresolved: bool = False) -> None:
         """Adds a reference to a named Schema defined in the ``#/definitions/`` object.
 
         :param .ReferenceResolver resolver: component resolver which must contain the definition
@@ -560,7 +641,7 @@ class SchemaRef(_Ref):
 Schema.OR_REF = (Schema, SchemaRef)
 
 
-def resolve_ref(ref_or_obj, resolver):
+def resolve_ref(ref_or_obj: Any, resolver: Any) -> Any:
     """Resolve `ref_or_obj` if it is a reference type. Return it unchaged if not.
 
     :param ref_or_obj: object to derefernece
@@ -573,7 +654,8 @@ def resolve_ref(ref_or_obj, resolver):
 
 
 class Responses(SwaggerDict):
-    def __init__(self, responses, default=None, **extra):
+    default: Optional[Response]
+    def __init__(self, responses: Dict[Union[str, int], Response], default: Optional[Response] = None, **extra: Any) -> None:
         """Describes the expected responses of an :class:`.Operation`.
 
         :param responses: mapping of status code to response definition
@@ -588,8 +670,12 @@ class Responses(SwaggerDict):
         self._insert_extras__()
 
 
+_SerializerOrClass = Union[Serializer, Type[Serializer]]
 class Response(SwaggerDict):
-    def __init__(self, description, schema=None, examples=None, **extra):
+    description: str
+    schema: Optional[Union[_SchemaOrRef, _SerializerOrClass]]
+    examples: Optional[Dict[str, Any]]
+    def __init__(self, description: str, schema: Optional[Union[_SchemaOrRef, _SerializerOrClass]] = None, examples: Optional[Dict[str, Any]] = None, **extra: Any) -> None:
         """Describes the structure of an operation's response.
 
         :param str description: response description
@@ -622,11 +708,10 @@ class ReferenceResolver(object):
         {'definitions': OrderedDict([('Article', Schema(...)]), 'parameters': OrderedDict()}
     """
 
-    def __init__(self, *scopes, **kwargs):
+    def __init__(self, *scopes: str, force_init: bool = False, **kwargs: Any) -> None:
         """
         :param str scopes: an enumeration of the valid scopes this resolver will contain
         """
-        force_init = kwargs.pop('force_init', False)
         if not force_init:
             raise AssertionError(
                 "Creating an instance of ReferenceResolver almost certainly won't do what you want it to do.\n"
@@ -642,7 +727,7 @@ class ReferenceResolver(object):
             assert isinstance(scope, str), "scope names must be strings"
             self._objects[scope] = OrderedDict()
 
-    def with_scope(self, scope):
+    def with_scope(self, scope: str) -> ReferenceResolver:
         """Return a view into this :class:`.ReferenceResolver` whose scope is defaulted and forced to `scope`.
 
         :param str scope: target scope, must be in this resolver's `scopes`
@@ -662,7 +747,7 @@ class ReferenceResolver(object):
         assert real_scope and real_scope in self._objects, "invalid scope %s" % scope
         return real_scope
 
-    def set(self, name, obj, scope=None):
+    def set(self, name: str, obj: Any, scope: Optional[str] = None) -> None:
         """Set an object in the given scope, raise an error if it already exists.
 
         :param str name: reference name
@@ -674,7 +759,7 @@ class ReferenceResolver(object):
         assert name not in self._objects[scope], "#/%s/%s already exists" % (scope, name)
         self._objects[scope][name] = obj
 
-    def setdefault(self, name, maker, scope=None):
+    def setdefault(self, name: str, maker: Callable[[], Any], scope: Optional[str] = None) -> Any:
         """Set an object in the given scope only if it does not exist.
 
         :param str name: reference name
@@ -696,7 +781,7 @@ class ReferenceResolver(object):
 
         return ret
 
-    def get(self, name, scope=None):
+    def get(self, name: str, scope: Optional[str] = None) -> Any:
         """Get an object from the given scope, raise an error if it does not exist.
 
         :param str name: reference name
@@ -707,7 +792,7 @@ class ReferenceResolver(object):
         assert name in self._objects[scope], "#/%s/%s is not defined" % (scope, name)
         return self._objects[scope][name]
 
-    def getdefault(self, name, default=None, scope=None):
+    def getdefault(self, name: str, default: Optional[Any] = None, scope: Optional[str] = None) -> Any:
         """Get an object from the given scope or a default value if it does not exist.
 
         :param str name: reference name
@@ -718,7 +803,7 @@ class ReferenceResolver(object):
         scope = self._check_scope(scope)
         return self._objects[scope].get(name, default)
 
-    def has(self, name, scope=None):
+    def has(self, name: str, scope: Optional[str] = None) -> bool:
         """Check if an object exists in the given scope.
 
         :param str name: reference name
@@ -729,24 +814,24 @@ class ReferenceResolver(object):
         scope = self._check_scope(scope)
         return name in self._objects[scope]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         if self._force_scope:
             return iter(self._objects[self._force_scope])
         return iter(self._objects)
 
     @property
-    def scopes(self):
+    def scopes(self) -> List[str]:
         if self._force_scope:
             return [self._force_scope]
         return list(self._objects.keys())
 
     # act as mapping
-    def keys(self):
+    def keys(self) -> KeysView:
         if self._force_scope:
             return self._objects[self._force_scope].keys()
         return self._objects.keys()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         if self._force_scope:
             return self._objects[self._force_scope][item]
         return self._objects[item]
